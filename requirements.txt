@@ -1,0 +1,7 @@
+streamlit
+pandas
+numpy
+matplotlib
+fpdf
+Pillow
+fpdf2
