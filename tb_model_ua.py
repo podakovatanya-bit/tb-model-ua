@@ -2717,36 +2717,68 @@ if st.session_state.get("forecast_table") is not None:
     }
 
     # ---- створення PDF
-pdf = PDFReport(
-    "Звіт моделювання туберкульозу",
-    meta["region"], meta["district"], meta["hromada"],
-    meta["period"], meta["start_year"]
-)
+    pdf = PDFReport(
+        "Звіт моделювання туберкульозу",
+        meta["region"], meta["district"], meta["hromada"],
+        meta["period"], meta["start_year"]
+    )
 
-# ✅ Підключаємо шрифт, який підтримує українську мову
-try:
-    pdf.add_font('DejaVu', '', 'DejaVuSans.ttf', uni=True)
-    pdf.add_font('DejaVu', 'B', 'DejaVuSans-Bold.ttf', uni=True)
-    pdf.set_font('DejaVu', '', 14)
-    pdf._font = 'DejaVu'
-except Exception as e:
-    st.warning(f"⚠️ Не вдалося підключити шрифт DejaVuSans: {e}")
+    # ✅ Підключаємо шрифт, який підтримує українську мову
+    try:
+        pdf.add_font('DejaVu', '', 'DejaVuSans.ttf', uni=True)
+        pdf.add_font('DejaVu', 'B', 'DejaVuSans-Bold.ttf', uni=True)
+        pdf.set_font('DejaVu', '', 14)
+        pdf._font = 'DejaVu'
+    except Exception as e:
+        st.warning(f"⚠️ Не вдалося підключити шрифт DejaVuSans: {e}")
 
-# === титульний блок
-# pdf.add_page()   # <-- не потрібно, бо сторінка вже створена в __init__
-pdf.set_font(pdf._font, "B", 18)
-pdf.cell(0, 10, "Звіт моделювання туберкульозу", ln=1, align="C")
-pdf.set_font(pdf._font, "", 12)
-pdf.cell(0, 8, f"Дата і час формування: {datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=1, align="C")
-pdf.ln(5)
+    # === титульний блок
+    pdf.set_font(pdf._font, "B", 18)
+    pdf.cell(0, 10, "Звіт моделювання туберкульозу", ln=1, align="C")
+    pdf.set_font(pdf._font, "", 12)
+    pdf.cell(0, 8, f"Дата і час формування: {datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=1, align="C")
+    pdf.ln(5)
 
-pdf.set_font(pdf._font, "", 12)
-pdf.cell(0, 8, f"Область: {meta['region']}", ln=1)
-pdf.cell(0, 8, f"Район: {meta['district']}", ln=1)
-pdf.cell(0, 8, f"Громада: {meta['hromada']}", ln=1)
-pdf.cell(0, 8, f"Період прогнозу: {meta['period']}    Рік початку: {meta['start_year']}", ln=1)
-pdf.cell(0, 8, f"Тривалість прогнозу: {meta['horizon']} років", ln=1)
-pdf._hr(3)
+    pdf.set_font(pdf._font, "", 12)
+    pdf.cell(0, 8, f"Область: {meta['region']}", ln=1)
+    pdf.cell(0, 8, f"Район: {meta['district']}", ln=1)
+    pdf.cell(0, 8, f"Громада: {meta['hromada']}", ln=1)
+    pdf.cell(0, 8, f"Період прогнозу: {meta['period']}    Рік початку: {meta['start_year']}", ln=1)
+    pdf.cell(0, 8, f"Тривалість прогнозу: {meta['horizon']} років", ln=1)
+    pdf._hr(3)
+
+    # ==== зовнішні фактори
+    ext_rows = st.session_state.get("external_factors_selected") or []
+    ext_mult = float(st.session_state.get("ext_factor_multiplier", 1.0))
+    if ext_rows:
+        pdf.set_font(pdf._font, "B", 14)
+        pdf.cell(0, 8, "Зовнішні фактори впливу", ln=1)
+        pdf.set_font(pdf._font, "", 11)
+
+        def safe_text(text: str) -> str:
+            text = str(text).replace("\n", " ").replace("\r", " ").strip()
+            if not text:
+                return "(невідомо)"
+            if len(text) > 200:
+                text = text[:200] + "..."
+            return text
+
+        for row in ext_rows:
+            txt = "• "
+            if "Фактор" in row and row["Фактор"]:
+                txt += safe_text(row["Фактор"])
+            else:
+                txt += "(невідомо)"
+            if "Вплив (%)" in row and str(row["Вплив (%)"]).strip():
+                txt += f" — {row['Вплив (%)']}%"
+
+            try:
+                pdf.cell(0, 6, safe_text(txt), ln=1)
+            except Exception:
+                pdf.cell(0, 6, "(помилка відображення рядка)", ln=1)
+
+        pdf.cell(0, 6, f"Застосований множник: ×{ext_mult:.3f}", ln=1)
+        pdf._hr(3)
 
     # ==== сценарні таблиці
     df_inc = st.session_state["forecast_table"].copy()
@@ -2870,7 +2902,6 @@ if st.session_state.get("pdf_bytes"):
         key="download_pdf_final",
         use_container_width=True
     )
-
 
 # 📎 Об'єднання PDF (стабільний варіант із PdfMerger)
 # ========================
