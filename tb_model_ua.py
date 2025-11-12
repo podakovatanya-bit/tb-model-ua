@@ -2722,14 +2722,14 @@ if st.session_state.get("forecast_table") is not None:
         meta["region"], meta["district"], meta["hromada"],
         meta["period"], meta["start_year"]
     )
-
-    # ✅ Підключаємо шрифт, який підтримує українську мову
-    try:
-        pdf.add_font('DejaVu', '', 'assets/fonts/DejaVuSans.ttf', uni=True)
-        pdf.set_font('DejaVu', '', 14)
-        pdf._font = 'DejaVu'
-    except Exception as e:
-        st.warning(f"⚠️ Не вдалося підключити шрифт DejaVuSans: {e}")
+# ✅ Підключаємо шрифт, який підтримує українську мову
+try:
+    pdf.add_font('DejaVu', '', 'DejaVuSans.ttf', uni=True)
+    pdf.add_font('DejaVu', 'B', 'DejaVuSans-Bold.ttf', uni=True)
+    pdf.set_font('DejaVu', '', 14)
+    pdf._font = 'DejaVu'
+except Exception as e:
+    st.warning(f"⚠️ Не вдалося підключити шрифт DejaVuSans: {e}")
 
     # === титульний блок
     # pdf.add_page()   # <-- не потрібно, бо сторінка вже створена в __init__
